@@ -20,14 +20,27 @@ $(function(){
     this.view.render();
     this.view.set_event();
 
+    this.touchkey = [-1, -1, -1];
     var that = this;
+    this.view.on('touchkeychange', function(message){
+      var layer = message.layer;
+      if(layer >= that.touchkey.length || layer < 0) return;
+      that.touchkey[layer] = message.key;
+    });
     this.view.on('layerchange', function(message){
       var layer = message.layer;
-      if(layer.from + layer.to == 1){
-        that.input.emit('input', message);
+      if(layer.from == 0 && layer.to == 1){
+        that.input.emit('key', { type : 'consonant', key : that.touchkey[layer.from] });
+      }
+      if(layer.from == 1 && layer.to == 0){
+        that.input.emit('key', { type : 'vowel', key : that.touchkey[layer.from] });
       }
     });
+    this.input.on('text', function(message){
+      that.emit('input', message);
+    });
   };
+  Suiken.Manager.prototype = new Suiken.Event();
   Suiken.View = function(target, canvas, otpions){
     this.target  = target;
     this.canvas  = canvas;
@@ -53,7 +66,10 @@ $(function(){
         var angle = en.get_angle({ x : e.pageX, y : e.pageY });
         if(angle < 0) angle = 360 - Math.abs(angle);
         var result = that.find_key(layer, angle);
-        that.highlight(layer, result.index);
+        if(result.index != that.suggest[layer].index){
+          that.emit('touchkeychange', { layer : layer, key : result.key });
+          that.highlight(layer, result.index);
+        }
         if(layer != that.current.layer){
           var message = { 
             key   : result.key,
@@ -114,11 +130,22 @@ $(function(){
     });
     return result;
   };
-  Suiken.Input = function(){};
+  Suiken.Input = function(){
+    this.consonant = null;
+    this.vowel     = null;
+    this.__defineSetter__('vowel', function(key){
+      if(this.consonant == null) return key;
+      var consonant = Suiken.TEXT[0].indexOf(this.consonant.text);
+      var vowel     = Suiken.TEXT[1].indexOf(key.text);
+      this.emit('text', { value : Suiken.Table[consonant][vowel] });
+      return key;
+    });
+  };
   Suiken.Input.prototype = new Suiken.Event();
   Suiken.Input.prototype.set_event = function(){
-    this.on('input', function(message){
-      console.log(message);
+    var that = this;
+    this.on('key', function(message){
+      that[message.type] = message.key;
     });
   };
   $.fn.suiken = function(options){

@@ -10,13 +10,23 @@
     <script type='text/javascript'>
     <!--
       $(function(){
-        $('body').append('<canvas id="canvas" width="480" height="480" />');
+        $('#content').find('li').css({ display : 'inline-block', 'list-style' : 'none' });
+        $('#input').append('<canvas id="canvas" width="480" height="480" />');
+        $('#result').append('<textarea id="text" cols="40" rows="36" />');
+        $('#result').css({ 'text-align' : 'center', width : '400px' });
         var suiken = $('#canvas').suiken();
+        suiken.on('input', function(message){
+          $('#text').val($('#text').val() + message.value);
+        });
       }); 
     //-->
     </script>
   </head>
   <body>
+    <ul id="content">
+      <li id="input"></li>
+      <li id="result"></li>
+    </ul>
   </body>
 </html>
 
